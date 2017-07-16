@@ -56,8 +56,12 @@ class Autoencoder:
             self.val_writer = tf.summary.FileWriter(
                 os.path.join(summary_dir, 'val'), self.sess.graph)
         with tf.name_scope('images'):
-            self.input_writer = tf.summary.FileWriter(os.path.join(self.summary_dir, 'images/inputs'), self.sess.graph)
-            self.output_writer = tf.summary.FileWriter(os.path.join(self.summary_dir, 'images/outputs'), self.sess.graph)
+            self.input_writer = \
+                tf.summary.FileWriter(os.path.join(self.summary_dir, 'images/inputs'), self.sess.graph)
+            self.output_writer =\
+                tf.summary.FileWriter(os.path.join(self.summary_dir, 'images/outputs'), self.sess.graph)
+        self._epoch = 0
+        self._nb_update = 0
 
     def build(self):
         x = dense(self.input_, self.input_dim, 512, activation='relu')
@@ -74,12 +78,13 @@ class Autoencoder:
         return loss, summary
 
     def fit(self, x, y, batch_size=32, nb_epoch=10, shuffle=False,
-            valid_x=None, valid_y=None, valid_step=None, save_step=1):
+            valid_x=None, valid_y=None, valid_step=None, save_step=1, nb_visualize=4):
         assert len(x) == len(y)
         if not(valid_x is None and valid_y is None):
             assert (len(valid_x) == len(valid_y))
 
         for epoch in range(1, nb_epoch + 1):
+            self._epoch = epoch
             steps_per_epoch = len(x) // batch_size if len(x) % batch_size == 0 \
                 else len(x) // batch_size + 1
             if shuffle:
@@ -88,23 +93,23 @@ class Autoencoder:
                 x_batch = x[iter_ * batch_size: (iter_ + 1) * batch_size]
                 y_batch = y[iter_ * batch_size: (iter_ + 1) * batch_size]
                 train_loss, summary = self.train_on_batch(x_batch, y_batch)
-                self.train_writer.add_summary(summary, epoch * steps_per_epoch + iter_)
+                self.train_writer.add_summary(summary, self._nb_update)
 
                 end_code = '\n' if steps_per_epoch == iter_ + 1 else '\r'
                 print("epoch {} {} / {} loss: {:.5f}".
                       format(epoch, iter_ * batch_size, len(x), train_loss),
                       end=end_code)
+                self._nb_update += 1
 
             if valid_step is not None and (epoch % valid_step == 0 or epoch == 1):
-                val_loss = self._validate(valid_x, valid_y, epoch, batch_size)
-                self._visualize(valid_x, epoch)
+                val_loss = self.evaluate(valid_x, valid_y, batch_size)
+                self.visualize(valid_x, nb_visualize)
                 print("validation loss: {:.5f}".format(val_loss))
 
             if epoch % save_step == 0 or epoch == 1:
                 self.save("model_epoch_{}".format(epoch))
 
-    def _validate(self, x, y, epoch, batch_size=32):
-        assert len(x) == len(y)
+    def evaluate(self, x, y, batch_size=32):
         steps_per_epoch = len(x) // batch_size if len(x) % batch_size == 0 \
             else len(x) // batch_size + 1
         val_loss = 0
@@ -114,19 +119,7 @@ class Autoencoder:
             l, summary = self.sess.run([self.loss, self.val_loss],
                                        feed_dict={self.input_: x_batch, self.t: y_batch})
             val_loss += l * (len(x_batch) / len(x))
-        self.val_writer.add_summary(summary, epoch)
-        return val_loss
-
-    def evaluate(self, x, y, batch_size=32):
-        steps_per_epoch = len(x) // batch_size if len(x) % batch_size == 0 \
-            else len(x) // batch_size + 1
-        val_loss = 0
-        for iter_ in range(steps_per_epoch):
-            x_batch = x[iter_ * batch_size: (iter_ + 1) * batch_size]
-            y_batch = y[iter_ * batch_size: (iter_ + 1) * batch_size]
-            l = self.sess.run(self.loss,
-                              feed_dict={self.input_: x_batch, self.t: y_batch})
-            val_loss += l * (len(x_batch) / len(x))
+        self.val_writer.add_summary(summary, self._epoch)
         return val_loss
 
     def predict(self, x, batch_size=32):
@@ -156,21 +149,21 @@ class Autoencoder:
             plt.xlabel('Output')
             plt.savefig(os.path.join(dst_dir, "{}.png".format(index)))
 
-    def _visualize(self, x, epoch, nb_sample=4):
+    def visualize(self, x, nb_sample=4):
         _x = x[:nb_sample]
         outputs = tf.cast(self.predict(_x, batch_size=nb_sample), tf.float32)
-        with tf.name_scope('epoch_{}'.format(epoch)):
+        with tf.name_scope('epoch_{}'.format(self._epoch)):
             i = tf.summary.image('inputs',
                                  tf.reshape(_x, [-1, 28, 28, 1]),
                                  nb_sample)
             summary = self.sess.run(i)
-            self.input_writer.add_summary(summary, epoch)
+            self.input_writer.add_summary(summary, self._epoch)
 
             o = tf.summary.image('outputs',
                                  tf.reshape(outputs, [-1, 28, 28, 1]),
                                  nb_sample)
             summary = self.sess.run(o)
-            self.output_writer.add_summary(summary, epoch)
+            self.output_writer.add_summary(summary, self._epoch)
 
     def save(self, file_name):
         return self.saver.save(self.sess, save_path=os.path.join(self.model_dir, file_name))

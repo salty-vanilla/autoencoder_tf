@@ -46,8 +46,7 @@ class Autoencoder:
 
         os.makedirs(os.path.join(summary_dir, 'train'), exist_ok=True)
         os.makedirs(os.path.join(summary_dir, 'val'), exist_ok=True)
-        # tf.summary.scalar("loss", self.loss)
-        # self.summary_op = tf.summary.merge_all()
+
         with tf.variable_scope('train'):
             self.train_loss = tf.summary.scalar("train_loss", self.loss)
             self.train_writer = tf.summary.FileWriter(
@@ -105,6 +104,7 @@ class Autoencoder:
                 self.save("model_epoch_{}".format(epoch))
 
     def _validate(self, x, y, epoch, batch_size=32):
+        assert len(x) == len(y)
         steps_per_epoch = len(x) // batch_size if len(x) % batch_size == 0 \
             else len(x) // batch_size + 1
         val_loss = 0

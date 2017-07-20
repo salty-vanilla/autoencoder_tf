@@ -23,7 +23,7 @@ def conv2d(input_, filters, kernel_size=(3, 3), strides=(1, 1),
         weights = tf.Variable(
             tf.truncated_normal([kernel_size[1], kernel_size[0], input_channel, filters],
                                 stddev=0.1),
-            name=name + 'weights')
+            name=name+'weights')
         biases = tf.Variable(tf.zeros([filters]), name=name+'biases')
         return activate(tf.nn.conv2d(input_, weights,
                                      strides=(1, strides[1], strides[0], 1), padding=padding) + biases,

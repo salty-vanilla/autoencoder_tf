@@ -30,6 +30,22 @@ def conv2d(input_, filters, kernel_size=(3, 3), strides=(1, 1),
                         type_=activation)
 
 
+def conv2d_transpose(input_, filters, kernel_size=(3, 3), strides=(1, 1),
+                     padding='SAME', activation='linear', name=None):
+    input_channel = input_.get_shape().as_list()[-1]
+    if name is None:
+        name = 'conv2d_transpose_{}'.format(filters)
+    with tf.variable_scope(name):
+        weights = tf.Variable(
+            tf.truncated_normal([kernel_size[1], kernel_size[0], input_channel, filters],
+                                stddev=0.1),
+            name=name+'weights')
+        biases = tf.Variable(tf.zeros([filters]), name=name+'biases')
+        return activate(tf.nn.conv2d_transpose(input_, weights,
+                                               strides=(1, strides[1], strides[0], 1), padding=padding) + biases,
+                        type_=activation)
+
+
 def pool2d(input_, kernel_size, mode='max', strides=(2, 2),
            padding='SAME', name=None):
     if mode == 'max' or 'Max' or 'MAX':

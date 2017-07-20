@@ -16,7 +16,7 @@ def dense(input_, input_dim, output_dim, activation='linear', name=None):
 
 def conv2d(input_, filters, kernel_size=(3, 3), strides=(1, 1),
            padding='SAME', activation='linear', name=None):
-    input_channel = input_.get_shape.as_list()[2]
+    input_channel = input_.get_shape().as_list()[-1]
     if name is None:
         name = 'conv2d_{}'.format(filters)
     with tf.variable_scope(name):
@@ -25,8 +25,8 @@ def conv2d(input_, filters, kernel_size=(3, 3), strides=(1, 1),
                                 stddev=0.1),
             name=name + 'weights')
         biases = tf.Variable(tf.zeros([filters]), name=name+'biases')
-        return activate(conv2d(input_, weights,
-                               strides=(1, strides[1], strides[0], 1), padding=padding) + biases,
+        return activate(tf.nn.conv2d(input_, weights,
+                                     strides=(1, strides[1], strides[0], 1), padding=padding) + biases,
                         type_=activation)
 
 

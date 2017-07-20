@@ -178,7 +178,7 @@ def main():
     train_x, valid_x = data_init(file_path, shape='vector', mode='train')
     train_y = train_x.copy()
     valid_y = valid_x.copy()
-    input_shape = (784, )
+    input_shape = (28, 28, 1)
     nb_epoch = 50
     model_dir = "./params"
     summary_dir = "./logs"

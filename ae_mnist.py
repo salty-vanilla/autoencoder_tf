@@ -1,38 +1,32 @@
 import tensorflow as tf
-import math
 import os
 import numpy as np
-import gzip
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from layers import dense
-
-try:
-    import pickle
-except:
-    import cPickle as pickle
+from layers import *
+from data_utils import data_init
 
 
 class Autoencoder:
     def __init__(self,
-                 input_dim,
+                 input_shape,
                  model_dir,
                  summary_dir,
                  optimizer=tf.train.AdamOptimizer()):
-        self.input_dim = input_dim
+        self.input_shape = input_shape
         self.model_dir = model_dir
         self.summary_dir = summary_dir
         os.makedirs(model_dir, exist_ok=True)
 
         with tf.name_scope('input'):
-            self.input_ = tf.placeholder(tf.float32, [None, self.input_dim])
-
-        with tf.name_scope('teacher'):
-            self.t = tf.placeholder(tf.float32, [None, self.input_dim])
+            self.input_ = tf.placeholder(tf.float32, [None] + list(self.input_shape))
 
         with tf.variable_scope('layers'):
             self.output = self.build()
+
+        with tf.name_scope('teacher'):
+            self.t = tf.placeholder(tf.float32, self.output.get_shape())
 
         with tf.name_scope('loss'):
             self.loss = tf.reduce_mean(tf.square(self.output - self.t), name='MSE')
@@ -64,12 +58,13 @@ class Autoencoder:
         self._nb_update = 0
 
     def build(self):
-        x = dense(self.input_, self.input_dim, 512, activation='relu')
+        input_dim = self.input_shape[0]
+        x = dense(self.input_, input_dim, 512, activation='relu')
         x = dense(x, 512, 256, activation='relu')
         x = dense(x, 256, 32, activation='relu', name='encoded')
         x = dense(x, 32, 256, activation='relu')
         x = dense(x, 256, 512, activation='relu')
-        x = dense(x, 512, self.input_dim, activation='sigmoid', name='decoded')
+        x = dense(x, 512, input_dim, activation='sigmoid', name='decoded')
         return x
 
     def train_on_batch(self, x, y):
@@ -123,7 +118,7 @@ class Autoencoder:
         return val_loss
 
     def predict(self, x, batch_size=32):
-        outputs = np.empty((0, 784))
+        outputs = np.empty([0] + self.output.get_shape().as_list()[1:])
         steps_per_epoch = len(x) // batch_size if len(x) % batch_size == 0 \
             else len(x) // batch_size + 1
         for iter_ in range(steps_per_epoch):
@@ -169,25 +164,26 @@ class Autoencoder:
         return self.saver.save(self.sess, save_path=os.path.join(self.model_dir, file_name))
 
 
-def data_init(file_path):
-    print("Loading MNIST ...    ", end="")
-    f = gzip.open(file_path, 'rb')
-    train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
-    print("COMPLETE")
-    return train_set[0], valid_set[0], test_set[0]
+class ConvAutoencoder(Autoencoder):
+    def build(self):
+        x = conv2d(self.input_, 16, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
+        x = pool2d(x, kernel_size=(2, 2))
+        x = conv2d(x, 32, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
+        x = pool2d(x, kernel_size=(2, 2), name='encoded')
+        return x
 
 
 def main():
     file_path = "mnist.pkl.gz"
-    train_x, valid_x, test_x = data_init(file_path)
+    train_x, valid_x = data_init(file_path, shape='vector', mode='train')
     train_y = train_x.copy()
     valid_y = valid_x.copy()
-    input_dim = 784
+    input_shape = (784, )
     nb_epoch = 50
     model_dir = "./params"
     summary_dir = "./logs"
 
-    model = Autoencoder(input_dim, model_dir, summary_dir)
+    model = ConvAutoencoder(input_shape, model_dir, summary_dir)
     model.fit(train_x, train_y, save_step=5, nb_epoch=nb_epoch,
               valid_x=valid_x, valid_y=valid_y, valid_step=5)
 

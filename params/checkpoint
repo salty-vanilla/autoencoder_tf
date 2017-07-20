@@ -1,6 +1,2 @@
-model_checkpoint_path: "model_epoch_50"
-all_model_checkpoint_paths: "model_epoch_30"
-all_model_checkpoint_paths: "model_epoch_35"
-all_model_checkpoint_paths: "model_epoch_40"
-all_model_checkpoint_paths: "model_epoch_45"
-all_model_checkpoint_paths: "model_epoch_50"
+model_checkpoint_path: "model_epoch_1"
+all_model_checkpoint_paths: "model_epoch_1"

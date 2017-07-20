@@ -1,4 +1,3 @@
-import tensorflow as tf
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -118,7 +117,7 @@ class Autoencoder:
         return val_loss
 
     def predict(self, x, batch_size=32):
-        outputs = np.empty([0] + self.output.get_shape().as_list()[1:])
+        outputs = np.empty([0] + list(self.input_shape))
         steps_per_epoch = len(x) // batch_size if len(x) % batch_size == 0 \
             else len(x) // batch_size + 1
         for iter_ in range(steps_per_epoch):
@@ -167,15 +166,25 @@ class Autoencoder:
 class ConvAutoencoder(Autoencoder):
     def build(self):
         x = conv2d(self.input_, 16, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
+        x = conv2d(x, 16, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
         x = pool2d(x, kernel_size=(2, 2))
         x = conv2d(x, 32, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
+        x = conv2d(x, 32, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
         x = pool2d(x, kernel_size=(2, 2), name='encoded')
+
+        print(tf.shape(x)[0], tf.shape(x)[1])
+        x = conv2d_transpose(x, 32, output_shape=[tf.shape(x)[0], 14, 14, 32],
+                             kernel_size=(5, 5), strides=(2, 2), padding='SAME', activation='relu')
+        x = conv2d(x, 32, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
+        x = conv2d_transpose(x, 16, output_shape=[tf.shape(x)[0], 28, 28, 16],
+                             kernel_size=(5, 5), strides=(2, 2), padding='SAME', activation='relu')
+        x = conv2d(x, 1, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='sigmoid')
         return x
 
 
 def main():
     file_path = "mnist.pkl.gz"
-    train_x, valid_x = data_init(file_path, shape='vector', mode='train')
+    train_x, valid_x = data_init(file_path, shape='image', mode='train')
     train_y = train_x.copy()
     valid_y = valid_x.copy()
     input_shape = (28, 28, 1)

@@ -172,7 +172,6 @@ class ConvAutoencoder(Autoencoder):
         x = conv2d(x, 32, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')
         x = pool2d(x, kernel_size=(2, 2), name='encoded')
 
-        print(tf.shape(x)[0], tf.shape(x)[1])
         x = conv2d_transpose(x, 32, output_shape=[tf.shape(x)[0], 14, 14, 32],
                              kernel_size=(5, 5), strides=(2, 2), padding='SAME', activation='relu')
         x = conv2d(x, 32, kernel_size=(5, 5), strides=(1, 1), padding='SAME', activation='relu')

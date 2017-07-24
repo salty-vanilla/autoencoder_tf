@@ -182,16 +182,23 @@ class ConvAutoencoder(Autoencoder):
 
 
 def main():
-    file_path = "mnist.pkl.gz"
-    train_x, valid_x = data_init(file_path, shape='image', mode='train')
-    train_y = train_x.copy()
-    valid_y = valid_x.copy()
-    input_shape = (28, 28, 1)
+    mode = 'mlp'
     nb_epoch = 50
     model_dir = "./params"
     summary_dir = "./logs"
+    file_path = "mnist.pkl.gz"
 
-    model = ConvAutoencoder(input_shape, model_dir, summary_dir)
+    if mode == 'mlp':
+        train_x, valid_x = data_init(file_path, shape='vector', mode='train')
+        input_shape = (784, )
+        model = Autoencoder(input_shape, model_dir, summary_dir)
+    else:
+        train_x, valid_x = data_init(file_path, shape='image', mode='train')
+        input_shape = (28, 28, 1)
+        model = ConvAutoencoder(input_shape, model_dir, summary_dir)
+
+    train_y = train_x.copy()
+    valid_y = valid_x.copy()
     model.fit(train_x, train_y, save_step=5, nb_epoch=nb_epoch,
               valid_x=valid_x, valid_y=valid_y, valid_step=5)
 

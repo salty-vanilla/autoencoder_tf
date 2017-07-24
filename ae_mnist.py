@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import argparse
 
 from layers import *
 from data_utils import data_init
@@ -182,10 +183,21 @@ class ConvAutoencoder(Autoencoder):
 
 
 def main():
-    mode = 'mlp'
-    nb_epoch = 50
-    model_dir = "./params"
-    summary_dir = "./logs"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batch_size', '-b', type=int, default=64)
+    parser.add_argument('--nb_epoch', '-e', type=int, default=50)
+    parser.add_argument('--mode', '-m', type=str, default='mlp', choices=['mlp', 'conv'])
+    parser.add_argument('--param_dir', '-pd', type=str, default="./params")
+    parser.add_argument('--log_dir', '-ld', type=str, default="./logs")
+
+    args = parser.parse_args()
+
+    batch_size = args.batch_size
+    nb_epoch = args.nb_epoch
+    mode = args.mode
+    model_dir = args.param_dir
+    summary_dir = args.log_dir
+
     file_path = "mnist.pkl.gz"
 
     if mode == 'mlp':
@@ -199,7 +211,7 @@ def main():
 
     train_y = train_x.copy()
     valid_y = valid_x.copy()
-    model.fit(train_x, train_y, save_step=5, nb_epoch=nb_epoch,
+    model.fit(train_x, train_y, batch_size=batch_size, save_step=5, nb_epoch=nb_epoch,
               valid_x=valid_x, valid_y=valid_y, valid_step=5)
 
 
